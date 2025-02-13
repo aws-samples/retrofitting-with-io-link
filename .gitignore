@@ -1,0 +1,5 @@
+**.pem
+**.cert
+**.key
+/cert
+**.DS_Store

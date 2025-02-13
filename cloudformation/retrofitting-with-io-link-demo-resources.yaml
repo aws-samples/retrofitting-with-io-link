@@ -1,0 +1,575 @@
+# This is sample code, for non-production usage. 
+# You should work with your security and legal teams to meet your organizational security, regulatory and compliance requirements before deployment”
+
+Description: |
+  Demo template for sending data via MQTT to AWS IoT Sitwise.
+
+Parameters:
+  AssetName:
+    Description: Name of IoT thing, unique for each device.
+    Type: String
+    Default: ice3
+  IOLinkMasterPortNumber:
+    Description: Port number the sensor is connected to on the IO-Link master
+    Type: Number
+    Default: 1
+    AllowedValues: [1, 2, 3, 4, 5, 6, 7, 8]
+  MQTTTopicPrefix:
+    Description: Prefix for MQTT topic (do not put '/' at the end)
+    Type: String
+    Default: iolinkdata
+    AllowedPattern: ^(?!.*\/\/)(?!\/)(?!.*\/$)[a-zA-Z0-9\/\+\#]+$
+  AssetModelName:
+    Description: Name of the asset model to be created
+    Type: String
+    Default: IoLinkDemoModel
+  LocationID:
+    Description: An uuid to identify 'location' property of asset model
+    Type: String
+    AllowedPattern: ^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$
+    Default: 14cbe4b1-f7d5-4bcc-87dd-3106ba377495
+  DistanceMMID:
+    Description: An uuid to identify 'distance' property of asset model
+    Type: String
+    AllowedPattern: ^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$
+    Default: 1cb25d7d-81fd-4265-9e24-24d03410ae56
+  DistanceTransformID:
+    Description: An uuid to identify 'transform' property of asset model
+    Type: String
+    AllowedPattern: ^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$
+    Default: 1cb25d7d-81fd-4265-9e24-14d03410ae57
+  DistanceMetricID:
+    Description: An uuid to identify 'metric' property of asset model
+    Type: String
+    AllowedPattern: ^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$
+    Default: 1cb25d7d-81fd-4265-9e24-14d03410ae68
+  PythonVersion:
+    Description: Python version to be used for custom resource Lambdas, e.g. '3.12'.
+    Type: String
+    Default: "3.12"
+
+Resources:
+
+  ### The resources section consists of four main parts:
+  ### Part 1: Contains resources needed for connectivity
+  ### Part 2: Contains resources for ingestion pipeline
+  ### Part 3: Contains resources for cleanup of the stack
+
+  ## Part 1: Deals with automated resource provisioning needed to connect IO-Link Master
+
+  # A Parameter Store parameter that will store the device's certificate 
+  CertificateParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub ${AssetName}-certificate
+      Type: String
+      Value: "to be set"
+      Description: "Certificate parameter"
+
+  # A Secretsmanager secret that will store the device's private key 
+  PrivateKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub ${AssetName}-private-key
+      Description: "IoT Device Private Key"
+
+  # An IoT thing representing the device
+  IoTThingForAsset:
+    Type: AWS::IoT::Thing
+    Properties:
+      ThingName: !Ref AssetName
+
+  # An IoT policy allowing the IO-Link master to connect to IoT Core
+  # Note: clientId mus be equal thing name
+  IOLinkMasterToIoTPolicy:
+    Type: AWS::IoT::Policy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - iot:Connect
+            Resource:
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:client/${!iot:Connection.Thing.ThingName}
+          - Effect: Allow
+            Action:
+              - iot:Publish
+              - iot:RetainPublish
+            Resource:
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/${MQTTTopicPrefix}/${!iot:ClientId}/clientstatus
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/${MQTTTopicPrefix}/${!iot:ClientId}/clientinfo
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/${MQTTTopicPrefix}/${!iot:ClientId}/connection # last will topic
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/${MQTTTopicPrefix}/${!iot:ClientId}/port/*
+          - Effect: Allow
+            Action:
+              - iot:Subscribe
+              - iot:Receive
+            Resource:
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/${MQTTTopicPrefix}/${!iot:ClientId}/port/+/auxin/wr
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/${MQTTTopicPrefix}/${!iot:ClientId}/dio/+/wr
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/${MQTTTopicPrefix}/${!iot:ClientId}/port/+/pdo/wr
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/${MQTTTopicPrefix}/${!iot:ClientId}/port/+/isdu/request/+
+
+  IotThingCertificateSetupLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${IotThingCertificateSetup}
+      RetentionInDays: 7
+
+  # A Lambda function that will create certificates and attach the policy on
+  # stack creation. No action on update or delete.
+  IotThingCertificateSetup:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-IotThingCertificateSetup
+      Code:
+        ZipFile: |
+          # creates certificate and keys
+          # attaches certificate and key to thing
+          # stores certificate and private key
+          import json
+          import boto3
+          import cfnresponse
+          
+          iot_client=boto3.client("iot")
+          secretsmanager = boto3.client('secretsmanager')
+          ssm_client = boto3.client('ssm')
+
+          def lambda_handler(event, context):
+            the_event = event['RequestType']
+            return_message = "routine not started"
+            data = {"Message": return_message, "CertificateArn": "yetUndefined"}
+
+            if the_event in ('Create'):
+              thing_name = event['ResourceProperties']['ThingName']
+              thing_policy_name = event['ResourceProperties']['ThingPolicyName']
+              certificate_parameter = event['ResourceProperties']['CertificateParameter']
+              private_key_secret = event['ResourceProperties']['PrivateKeySecret']
+              region = event['ResourceProperties']['Region']
+              account_id = event['ResourceProperties']['AccountId']
+              
+              # create an active certificate and keys
+              response = iot_client.create_keys_and_certificate(setAsActive=True)
+              certificate_arn = response['certificateArn']
+              certificate_pem = response['certificatePem']
+              certificate_id = response['certificateId']
+
+              key_pair = response['keyPair']
+              private_key = key_pair['PrivateKey']
+
+              # attach certificate to thing
+              iot_client.attach_thing_principal(
+                thingName=thing_name,
+                principal=certificate_arn
+              )
+
+              # attach policy to certificate
+              iot_client.attach_policy(
+                policyName=thing_policy_name,
+                target=certificate_arn
+              )
+              
+              # Store certificate in parameter store
+              ssm_client.put_parameter(
+                Name=certificate_parameter,
+                Value=certificate_pem,
+                Type='String',
+                Overwrite=True
+              )
+              
+              # Store private key in Secrets Manager
+              secretsmanager.put_secret_value(
+                  SecretId=private_key_secret,
+                  SecretString=private_key
+              )
+
+              certificate_arn = f"arn:aws:iot:{region}:{account_id}:cert/{certificate_id}"
+              return_message="AWS IoT thing setup ready"
+              
+              data = {"message": return_message, "CertificateArn": certificate_arn}
+
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, data)
+      Handler: index.lambda_handler
+      Role: !GetAtt IotThingCertificateSetupRole.Arn
+      Runtime: !Sub python${PythonVersion}
+      Timeout: 10
+
+  # A custom resource executing the Lambda function
+  IoTThingCertificateSetupResource:
+    Type: Custom::IotThingCertificateSetup
+    Properties:
+      ServiceToken: !GetAtt IotThingCertificateSetup.Arn
+      ThingName: !Ref IoTThingForAsset
+      ThingPolicyName: !Ref IOLinkMasterToIoTPolicy
+      CertificateParameter: !Ref CertificateParameter
+      PrivateKeySecret: !Ref PrivateKeySecret
+      Region: !Ref AWS::Region
+      AccountId: !Ref AWS::AccountId
+      ServiceTimeout: 60
+
+  # Required permissions for teh setup Lambda
+  IotThingCertificateSetupRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceArn: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-IotThingCertificateSetup
+      Policies:
+        - PolicyName: CloudwatchLogs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-IotThingCertificateSetup:*
+        - PolicyName: IotAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iot:CreateKeysAndCertificate
+                  - iot:AttachThingPrincipal
+                  - iot:AttachPolicy
+                Resource: '*'
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:PutSecretValue
+                  - secretsmanager:UpdateSecret
+                Resource: 
+                  - !Ref PrivateKeySecret
+              - Effect: Allow
+                Action:
+                  - ssm:PutParameter
+                Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CertificateParameter}'
+
+  ## Part 2: Deals with automated resource provisioning needed for storing the data
+
+  # A Sitewise model serving as blue print for the actual device
+  AssetModel:
+    Type: AWS::IoTSiteWise::AssetModel
+    Properties:
+      AssetModelDescription: String
+      AssetModelName: !Ref AssetModelName
+      AssetModelProperties:
+        # a static attribute that can hold data like location, devic type or version
+        - DataType: STRING
+          LogicalId: !Ref LocationID
+          Name: Location
+          Type:
+            Attribute:
+              DefaultValue: TEST_DEFAULT
+            TypeName: Attribute
+          Unit: NA
+        # a measurement that stores the actual distnace measurements obtained from the device
+        - DataType: INTEGER
+          LogicalId: !Ref DistanceMMID
+          Name: Distance_in_mm
+          Type:
+            TypeName: Measurement
+          Unit: mm
+        # a transformation that transforms the distance to meter
+        - DataType: DOUBLE
+          LogicalId: !Ref DistanceTransformID
+          Name: Distance_in_meters
+          Type:
+            TypeName: Transform
+            Transform:
+              Expression: d/1000
+              Variables:
+                - Name: d
+                  Value:
+                    PropertyLogicalId: !Ref DistanceMMID
+          Unit: m
+        # a metric that calcualts the average distance over a 2 mintue window in meter
+        - DataType: DOUBLE
+          LogicalId: !Ref DistanceMetricID
+          Type:
+            TypeName: Metric
+            Metric:
+              Variables:
+                - Name: d
+                  Value:
+                    PropertyLogicalId: !Ref DistanceTransformID
+              Window:
+                Tumbling:
+                  Interval: 2m #2 minutes
+              Expression: avg(d)
+          Unit: meter
+          Name: avg_distancein_m
+      AssetModelType: ASSET_MODEL
+
+  # the actual asset representing the IO-Link master
+  Asset:
+    Type: AWS::IoTSiteWise::Asset
+    Properties:
+      AssetModelId: !GetAtt AssetModel.AssetModelId
+      AssetName: !Ref AssetName
+      AssetProperties:
+        - Alias: !Sub ${MQTTTopicPrefix}/${AssetName}/port/${IOLinkMasterPortNumber}/pdi
+          LogicalId: !Ref DistanceMMID
+          NotificationState: DISABLED
+
+  # An IAM role allowing IoT Core rules to forward data to the Sitewise asset
+  RoleRuleToSitewise:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /service-role/
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: iot.amazonaws.com
+      Policies:
+        - PolicyName: IoTRuleToSitewise
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Condition:
+                  StringLike:
+                    iotsitewise:propertyAlias: !Sub ${MQTTTopicPrefix}/${AssetName}/port/${IOLinkMasterPortNumber}/pdi
+                Resource:
+                  - !Sub arn:aws:iotsitewise:${AWS::Region}:${AWS::AccountId}:time-series/*
+                Action: iotsitewise:BatchPutAssetPropertyValue
+                Effect: Allow
+              - Resource: 
+                  - !Sub "arn:aws:iotsitewise:${AWS::Region}:${AWS::AccountId}:asset/_"
+                Action: iotsitewise:BatchPutAssetPropertyValue
+                Effect: Allow
+              - Resource:
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:iot/rule/sitewise/${AssetName}/error:*
+                Action:
+                  - logs:CreateLogStream
+                  - logs:DescribeLogStreams
+                  - logs:PutLogEvents
+                Effect: Allow
+
+  # A LogGroup for the IoT rule's error action
+  IotRuleErrorActionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub iot/rule/sitewise/${AssetName}/error
+      RetentionInDays: 7
+
+  # IoT Core ruel forwarding data to the Sitewise asset
+  IoTTopicRuleForAsset:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: !Ref AssetName
+      TopicRulePayload:
+        RuleDisabled: false
+        ErrorAction:
+          CloudwatchLogs:
+            BatchMode: false
+            RoleArn: !GetAtt RoleRuleToSitewise.Arn
+            LogGroupName: !Ref IotRuleErrorActionLogs
+        Description: Forward data to sitewise
+        AwsIotSqlVersion: '2016-03-23'
+        Actions:
+          - IotSiteWise:
+              RoleArn: !GetAtt RoleRuleToSitewise.Arn
+              PutAssetPropertyValueEntries:
+                - PropertyAlias: ${topic()}
+                  PropertyValues:
+                    - Value:
+                        IntegerValue: ${P_ProcessData0.MV___Distance}
+                      Timestamp:
+                        TimeInSeconds: ${floor(timestamp() / 1E3)}
+                        OffsetInNanos: ${(timestamp() % 1E3) * 1E6}
+        Sql: !Sub SELECT * FROM '${MQTTTopicPrefix}/${AssetName}/port/${IOLinkMasterPortNumber}/pdi'
+
+  ## Part 3: Deals with deleting resources for cleanup of the demo
+
+  # A LogGroup for the the Lambda fucntion  used delete the certificate
+  IotThingCertificateDeleteLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${IotThingCertificateDelete}
+      RetentionInDays: 7
+
+  # A Lambda function used delete the certificate
+  IotThingCertificateDelete:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-IotThingCertificateDelete
+      Code:
+        ZipFile: |
+          # deletes certificatesfrom IoT
+          # delets certificates and keys from S3
+          import json
+          import boto3
+          import time
+          import cfnresponse
+          from botocore.exceptions import ClientError
+
+          def get_principals(iot_client, thing_name):
+            paginator = iot_client.get_paginator('list_thing_principals')
+            page_iterator = paginator.paginate(thingName=thing_name)
+            principals = []
+            for page in page_iterator:
+              principals.extend(page['principals'])
+            return principals
+          
+          def detach_principal_and_policy(iot_client, thing_name, principals, thing_policy_name):
+            for principal in principals:
+              iot_client.detach_thing_principal(
+                principal=principal,
+                thingName=thing_name
+              )
+              iot_client.detach_policy(
+                policyName=thing_policy_name,
+                target=principal
+              )
+          
+          def delete_certificates(iot_client, principals):
+            for principal in principals:
+              certId=principal.split("/")[1]
+              iot_client.update_certificate(
+                certificateId=certId,
+                newStatus='INACTIVE'
+              )
+              iot_client.delete_certificate(
+                certificateId=certId,
+                forceDelete=True
+              )
+          
+          iot_client=boto3.client("iot")
+          s3_client = boto3.client('s3')
+          
+          def lambda_handler(event, context):
+            the_event = event['RequestType']
+            return_message = "routine not started"
+            
+            if the_event in ('Delete'):
+              thing_name = event['ResourceProperties']['ThingName']
+              thing_policy_name = event['ResourceProperties']['ThingPolicyName']
+              principals = get_principals(iot_client, thing_name)
+              
+              try:
+                detach_principal_and_policy(iot_client, thing_name, principals, thing_policy_name)
+              except Exception as e:
+                print(f"Error: {str(e)}")
+                cfnresponse.send(event, context, cfnresponse.FAILED, {"message": str(e)})
+              
+              # Wait for the detachments to take effect
+              time.sleep(10)
+              
+              try:
+                delete_certificates(iot_client, principals)
+              except Exception as e:
+                print(f"Error: {str(e)}")
+                cfnresponse.send(event, context, cfnresponse.FAILED, {"message": str(e)})
+
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, {"message": return_message})
+      Handler: index.lambda_handler
+      Role: !GetAtt IotThingCertificateDeleteRole.Arn
+      Runtime: !Sub python${PythonVersion}
+      Timeout: 15
+
+  # An IAM role for the Lambda function used delete the certificate
+  IotThingCertificateDeleteRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceArn: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-IotThingCertificateDelete                 
+      Policies:
+        - PolicyName: CloudwatchLogs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-IotThingCertificateDelete:*      
+        - PolicyName: IotThingCertificateSetupRole
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iot:ListThingPrincipals
+                  - iot:DetachThingPrincipal
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - iot:UpdateCertificate
+                  - iot:DeleteCertificate
+                  - iot:DetachPolicy
+                Resource: !GetAtt IoTThingCertificateSetupResource.CertificateArn
+
+  # A custom resource used to trigger the certificate deletion Lambda function on stack deletion
+  IoTThingCertificateDeleteResource:
+    Type: Custom::IotThingCertificateDelete
+    Properties:
+      ServiceToken: !GetAtt IotThingCertificateDelete.Arn
+      ServiceTimeout: 60
+      ThingName: !Ref IoTThingForAsset
+      ThingPolicyName: !Ref IOLinkMasterToIoTPolicy
+
+Outputs:
+  MQTTBasePath:
+    Description: Topic Base Path for ICE3 MQTT configuration.
+    Value: !Sub '${MQTTTopicPrefix}/${AssetName}'
+
+  MQTTPort:
+    Description: Server Port for ICE3 MQTT configuration.
+    Value: '8883'
+
+  IoTThingAndAssetName:
+    Description: Name used for Sitewise asset and IoT thing.
+    Value: !Ref AssetName
+
+  GetSecretCommand:
+    Description: Command to download private key from Secrets Manager.
+    Value: !Sub |
+      aws secretsmanager get-secret-value --secret-id ${AssetName}-private-key --query 'SecretString' --output text > ./${AssetName}.pem.key
+
+  GetCertificateCommand:
+    Description: Command to download certificate from Parameter Store
+    Value: !Sub |
+      aws ssm get-parameter --name "${AssetName}-certificate" --query "Parameter.Value" --output text > ./${AssetName}.pem.cert
+
+  GetIoTEndpointCommand:
+    Description: Command to get IoT endpoint used as Server Name/IP for ICE3 MQTT configuration.
+    Value: 'aws iot describe-endpoint --endpoint-type iot:Data-ATS --output text'
+
+  PrivateKeySecretConsoleUrl:
+    Description: Console URL for the private key secret
+    Value: !Sub 'https://console.aws.amazon.com/secretsmanager/home?region=${AWS::Region}#!/secret?name=${PrivateKeySecret}'
+
+  CertificateParameterConsoleUrl:
+    Description: Console URL for the certificate parameter
+    Value: !Sub 'https://console.aws.amazon.com/systems-manager/parameters/${AssetName}-certificate/description?region=${AWS::Region}'
+
+  IoTEndpointConsoleUrl:
+    Description: Console URL for IoT Endpoint (see Domain name)
+    Value: !Sub 'https://console.aws.amazon.com/iot/home?%2Fdomain-configuration-hub=&region=${AWS::Region}#/domain-configurations/iot%3AData-ATS'
+
+  SitewiseAssetsConsoleUrl:
+    Description: Console URL for Sitewise assets
+    Value: !Sub 'https://console.aws.amazon.com/iotsitewise/home?region=${AWS::Region}#/assets'
