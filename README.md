@@ -38,16 +38,16 @@ sh ./deploy.sh -o t
 ## Pepperl+Fuchs ICE Setup
 
 * Download IODD for the distance sensor from the [iodd-finder.com](https://ioddfinder.io-link.com/productvariants/search?productName=%22OMT550-R200-2EP-IO-0,3M-V1%22) website
-* Connect the master to your powersupply and network. Lookup the manuals of the cables or powersupply if you need further advise. they can be found on the Pepperl+Fuchs website
+* Connect the master to your powersupply and network. Lookup the manuals of the cables or powersupply if you need further advise. They can be found on the Pepperl+Fuchs website.
 * Connect the distance sensor to port 1
 * Open the webinterface in your browser by entering the IP adress. The IP to use is printed on the device. In case the default IP cannot be used in your network, lookup how to change default IP in the manual of the device. 
 * Upload the IODD .zip file to the device
 ![](./img/ice3/ice3_iodd.en.png)
 
-* Configure network 
+* Configure network  
 ![](./img/ice3/ice3_network.en.png)
 
-* Enable MQTT
+* Enable MQTT  
 The required certificate and key can be found in the ```./cert``` folder of the project that was created as part of the ```deploy.sh``` script run. The required IoT endpoint will also be outputed by the script.
 ![](./img/ice3/ice3_mqtt.en.png)
 
@@ -68,6 +68,13 @@ aws iotsitewise get-asset-property-value-history \
 ```
 
 ## Possible extensions of architecure
+The architecture can be extended in various ways:
+* AWS IoT Greengrass enables data processing at the edge before transferring it to AWS Cloud or other applications
+* Applications can subscribe to or receive forwarded data
+* Data visualization
+* Integration of language models via Bedrock Agents
+* Use of data in other applications through the SiteWise API
+* Data export to Amazon S3 for further use, e.g., through analytics applications
 ![](./img/arch/retro_demo_extended.en.png)
 
 

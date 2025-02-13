@@ -1,5 +1,3 @@
-Here's the German translation of the markdown readme.md file:
-
 Dies ist Beispielcode, nicht für den Produktiveinsatz gedacht.
 Sie sollten mit Ihren Sicherheits- und Rechtsteams zusammenarbeiten, um die Sicherheits-, Regulierungs- und Compliance-Anforderungen Ihrer Organisation vor der Bereitstellung zu erfüllen.
 
@@ -19,7 +17,7 @@ Beide Komponenten sind auch Teil des Pepperl+Fuchs 'IO-Link Starter Kit'.
 ![](./img/arch/retro_demo.de.png)
 
 Die folgenden Anweisungen verwenden die AWS CLI.  
-Wenn Sie den Stack lieber über die Konsole erstellen möchten, können Sie dieser [Anleitung](https://docs.aws.amazon.com/de_de/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html#create-stack) unter Nutzung der Option "Template hochladen" folgen.  
+Wenn Sie den Stack lieber über die Konsole erstellen möchten, können Sie dieser [Anleitung](https://docs.aws.amazon.com/de_de/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html#create-stack) unter Nutzung der Option "Vorlage hochladen" folgen.  
 Nach der Erstellung des Stacks finden Sie im Ausgabe-Tab des Stacks Links zu den erforderlichen Eingaben.
 
 ### Stack erstellen
@@ -54,7 +52,7 @@ Das erforderliche Zertifikat und der Schlüssel befinden sich im ```./cert``` Or
 ![](./img/ice3/ice3_mqtt.de.png)
 
 ## Validieren
-In der AWS IoT Sitewise Console sind die eingehenden Werte nun zu beobachten (rote Markierung).
+In der AWS IoT Sitewise Console sind die eingehenden Werte nun zu beobachten.
 ![](./img/aws/sitewise.de.png)
 
 Alternativ kann auch über die Sitewise API, z.B. via AWS CLI eine Abfrage gestartet werden.  
@@ -71,4 +69,11 @@ aws iotsitewise get-asset-property-value-history \
 ```
 
 ## Mögliche Erweiterungen der Architektur
+Die Architektur lässt sich auf vielfältige Weise erweitern:
+* AWS IoT Greengrass ermöglicht es, die Daten am Edge zu prozessieren, bevor sie an die AWS Cloud oder andere Applikationen übergeben werden
+* Applikationen können die Daten abonnieren oder weitergeleitet bekommen
+* Datenvisualisierung
+* Anbindung von Sprachmodellen über Bedrock Agents
+* Nutzung der Daten in weiteren Applikationen durch die SiteWise API
+* Datenexport nach Amazon S3 zur Weiternutzung z.B. durch Analytics-Applikationen
 ![](./img/arch/retro_extended.de.png)
