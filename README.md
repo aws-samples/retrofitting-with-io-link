@@ -14,11 +14,11 @@ Both components are also part of the Pepperl+Fuchs 'IO-Link Starter Kit'.
 
 ## AWS Setup
 
-![](./img/arch/retro_demo.de.png)
+![](./img/arch/retro_demo.en.png)
 
 Below setup instructions use AWS CLI.  
 If you prefer to build the stack using the console, you can follow these [instructions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html#create-stack) using the Option "Upload template".  
-Once created, check the ouputs tab of the stack for links to required inputs.
+Once created, check the outputs tab of the stack for links to required inputs.
 
 ### Create stack
 ```bash
