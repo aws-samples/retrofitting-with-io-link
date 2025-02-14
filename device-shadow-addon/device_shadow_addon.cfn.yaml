@@ -1,0 +1,142 @@
+# This is sample code, for non-production usage. 
+# You should work with your security and legal teams to meet your organizational security, regulatory and compliance requirements before deployment”
+Description: > 
+  Enables named shadows for device's and uses clientinfo, clientstatus and 
+  ports' deviceinfo and status messages turning them to names shadows.
+
+Parameters:
+  MQTTPrefix:
+    Description: 'MQTT prefix under which the client sends data'
+    Type: String
+    Default: iolinkdata
+  AssetName:
+    Description: 'Name of the IoT Thing that will receive shadow updates'
+    Type: String
+    Default: ice3
+  PythonVersion:
+    Description: Python version to be used for custom resource Lambdas, e.g. '3.12'.
+    Type: String
+    Default: "3.12"    
+
+Resources:
+
+  # Log group for error action
+  IotRuleErrorLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/iot/${AWS::StackName}/shadow-updates/error'
+      RetentionInDays: 7
+
+  # IAM role for IoT rule
+  IotRuleRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: iot.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: RepublishToShadow
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: iot:Publish
+                Resource: !Sub 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/$aws/things/${AssetName}/shadow/name/*/update'
+        - PolicyName: CloudWatchLogsAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !GetAtt IotRuleErrorLogs.Arn
+
+  # IoT Rule catching clientstatus messages for all clients
+  ClientStatusToShadowRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: ice3_client_status_to_shadow
+      TopicRulePayload:
+        RuleDisabled: false
+        Sql: !Sub SELECT * as state.reported FROM '${MQTTPrefix}/${AssetName}/clientstatus'
+        Actions:
+          - Republish:
+              RoleArn: !GetAtt IotRuleRole.Arn
+              Topic: !Sub '$$aws/things/${AssetName}/shadow/name/clientstatus/update'
+              Qos: 0
+        ErrorAction:
+          CloudwatchLogs:
+            LogGroupName: !GetAtt IotRuleErrorLogs.Arn
+            RoleArn: !GetAtt IotRuleRole.Arn
+        Description: 'Updates thing shadow reported state from clientstatus messages'
+        AwsIotSqlVersion: '2016-03-23'
+  
+  # IoT Rule catching clientinfo messages
+  ClientInfoToShadowRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: ice3_client_info_to_shadow
+      TopicRulePayload:
+        RuleDisabled: false
+        Sql: !Sub SELECT * as state.reported FROM '${MQTTPrefix}/${AssetName}/clientinfo'
+        Actions:
+          - Republish:
+              RoleArn: !GetAtt IotRuleRole.Arn
+              Topic: !Sub '$$aws/things/${AssetName}/shadow/name/clientinfo/update'
+              Qos: 0
+        ErrorAction:
+          CloudwatchLogs:
+            LogGroupName: !GetAtt IotRuleErrorLogs.Arn
+            RoleArn: !GetAtt IotRuleRole.Arn
+        Description: 'Updates thing shadow reported state from clientinfo messages'
+        AwsIotSqlVersion: '2016-03-23'        
+
+  # IoT Rule catching port status messages for all ports
+  PortStatusToShadowRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: ice3_port_status_to_shadow
+      TopicRulePayload:
+        RuleDisabled: false
+        Sql: !Sub SELECT * as state.reported FROM '${MQTTPrefix}/${AssetName}/port/+/status'
+        Actions:
+          - Republish:
+              RoleArn: !GetAtt IotRuleRole.Arn
+              Topic: !Sub '$$aws/things/${AssetName}/shadow/name/port_${!topic(4)}_status/update'
+              Qos: 0
+        ErrorAction:
+          CloudwatchLogs:
+            LogGroupName: !GetAtt IotRuleErrorLogs.Arn
+            RoleArn: !GetAtt IotRuleRole.Arn
+        Description: 'Updates thing shadow reported state from port status messages'
+        AwsIotSqlVersion: '2016-03-23'
+
+  # IoT Rule catching port deviceinfo messages for all ports
+  PortInfoToShadowRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: ice3_port_deviceinfo_to_shadow
+      TopicRulePayload:
+        RuleDisabled: false
+        Sql: !Sub SELECT * as state.reported FROM '${MQTTPrefix}/${AssetName}/port/+/deviceinfo'
+        Actions:
+          - Republish:
+              RoleArn: !GetAtt IotRuleRole.Arn
+              Topic: !Sub '$$aws/things/${AssetName}/shadow/name/port_${!topic(4)}_deviceinfo/update'
+              Qos: 0
+        ErrorAction:
+          CloudwatchLogs:
+            LogGroupName: !GetAtt IotRuleErrorLogs.Arn
+            RoleArn: !GetAtt IotRuleRole.Arn
+        Description: 'Updates thing shadow reported state from port deviceinfo messages'
+        AwsIotSqlVersion: '2016-03-23'        
+
+Outputs:
+  IoThingConsoleUrl:
+    Description: Check tab device shadows in IoT console to inspect current shadows
+    Value: !Sub 'https://console.aws.amazon.com/iot/home?region=${AWS::Region}#/thing/${AssetName}'

@@ -22,17 +22,21 @@ Nach der Erstellung des Stacks finden Sie im Ausgabe-Tab des Stacks Links zu den
 
 ### Stack erstellen
 ```bash
-sh ./deploy.sh -o c
+cd demo-setup
+sh ./deploy.sh -o c # c = create, u = update, t = delete
+cd -
 ```
 
-### Stack aktualisieren
-```bash
-sh ./deploy.sh -o u
-```
+### Optional: Erweiterung zur Nutzung von Geräteschatten erstellen
+Dieser Stack enthält die Logik um die Status Nachrichten des Masters in Geräteschatten zu persistieren.
 
-### Stack löschen
+![](./img/arch/shadow_addon.de.png)
+
+Um die Erweiterung zu provisionieren nutzen Sie diese Befehle
 ```bash
-sh ./deploy.sh -o t
+cd device-shadow-addon
+sh ./deploy.sh -o c # c = create, u = update, t = delete
+cd -
 ```
 
 ## Pepperl+Fuchs ICE Einrichtung
@@ -47,8 +51,8 @@ sh ./deploy.sh -o t
 * Netzwerk konfigurieren 
 ![](./img/ice3/ice3_network.de.png)
 
-* MQTT aktivieren
-Das erforderliche Zertifikat und der Schlüssel befinden sich im ```./cert``` Ordner des Projekts, der im Rahmen der Ausführung des ```deploy.sh``` Skripts erstellt wurde. Der erforderliche IoT-Endpunkt wird ebenfalls vom Skript ausgegeben.
+* MQTT aktivieren  
+Das erforderliche Zertifikat und der Schlüssel befinden sich im ```.demo-setup/cert``` Ordner des Projekts, der im Rahmen der Ausführung des ```deploy.sh``` Skripts erstellt wurde. Der erforderliche IoT-Endpunkt wird ebenfalls vom Skript ermittelt und ausgegeben.
 ![](./img/ice3/ice3_mqtt.de.png)
 
 ## Validieren
@@ -66,6 +70,11 @@ aws iotsitewise get-asset-property-value-history \
   --start-date $five_minutes_before \
   --end-date $time_now
 
+```
+
+### Stack löschen
+```bash
+sh ./deploy.sh -o t
 ```
 
 ## Mögliche Erweiterungen der Architektur

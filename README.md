@@ -22,17 +22,21 @@ Once created, check the outputs tab of the stack for links to required inputs.
 
 ### Create stack
 ```bash
-sh ./deploy.sh -o c
+cd demo-setup
+sh deploy.sh -o c # c = create, u = update, t = delete
+cd -
 ```
 
-### Update stack
-```bash
-sh ./deploy.sh -o u
-```
+### Optional: Addon for device shadow
+This addon stack takes the status messages of the devie and turns it into device shadows to persist them.
 
-### Delete stack
+![](./img/arch/shadow_addon.en.png)
+
+To provision the addon use these commands
 ```bash
-sh ./deploy.sh -o t
+cd device-shadow-addon
+sh deploy.sh -o c # c = create, u = update, t = delete
+cd -
 ```
 
 ## Pepperl+Fuchs ICE Setup
@@ -48,7 +52,7 @@ sh ./deploy.sh -o t
 ![](./img/ice3/ice3_network.en.png)
 
 * Enable MQTT  
-The required certificate and key can be found in the ```./cert``` folder of the project that was created as part of the ```deploy.sh``` script run. The required IoT endpoint will also be outputed by the script.
+The required certificate and key can be found in the ```./demo-setup/cert``` folder of the project that was created as part of the ```deploy.sh``` script run. The required IoT endpoint will also be outputed by the script.
 ![](./img/ice3/ice3_mqtt.en.png)
 
 ## Validation

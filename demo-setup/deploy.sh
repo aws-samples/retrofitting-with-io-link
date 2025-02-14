@@ -13,7 +13,7 @@ ASSET_NAME="ice3"
 ASSET_MODEL="IoLinkDemoModel"
 
 # Fix paramters
-TEMPLATE_FILE="cloudformation/retrofitting-with-io-link-demo-resources.yaml"
+TEMPLATE_FILE="./io-link-demo-resources.cfn.yaml"
 REGION=$(aws configure get region)
 
 # Function to print usage
