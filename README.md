@@ -6,6 +6,9 @@ You should work with your security and legal teams to meet your organizational s
 [![en](https://img.shields.io/badge/lang-en-red.svg)](https://[github.com/jonatasemidio/multilanguage-readme-pattern](https://github.com/aws-samples/retrofitting-with-io-link)/blob/master/README.md)
 [![de](https://img.shields.io/badge/lang-de-yellow.svg)](https://github.com/aws-samples/retrofitting-with-io-link/blob/master/README.de.md)
 
+## Overview
+This demo shows how to generate new digital capabilities for existing machines and process setups by connection a Pepperl+Fuchs IO-Link master to the AWS cloud. We register the data in AWS IoT Sitewise, a service build to ingest and analyze industrial data.
+
 ## Hardware requirements
 * Pepperl+Fuchs IO-Link master model ICE3-8IOL-G65L-V1D 
 * Pepperl+Fuchs IO-Link distance sensor model OMT550-R200-2EP-IO-V1  
@@ -39,6 +42,19 @@ sh deploy.sh -o c # c = create, u = update, t = delete
 cd -
 ```
 
+### Optional: Addon for last will
+This addon stack sends an Email via SNS in case the device's last will message is emmitted by the broker due to an ungraceful disconenction of the device.  
+Make sure to confirm your subscription through the email you will receive uposn subscription is created.
+
+![](./img/arch/last_will_addon.en.png)
+
+To provision the addon use these commands
+```bash
+cd last-will-addon
+sh deploy.sh -o c -e INSERT-YOUR-EMAIL # -o: c = create, u = update, t = delete
+cd -
+```
+
 ## Pepperl+Fuchs ICE Setup
 
 * Download IODD for the distance sensor from the [iodd-finder.com](https://ioddfinder.io-link.com/productvariants/search?productName=%22OMT550-R200-2EP-IO-0,3M-V1%22) website
@@ -56,6 +72,32 @@ The required certificate and key can be found in the ```./demo-setup/cert``` fol
 ![](./img/ice3/ice3_mqtt.en.png)
 
 ## Validation
+
+Open the [MQTT test client](https://console.aws.amazon.com/iot/home?#/test) ion the AWS console.  
+Make sure you are in the proper region!  
+Use option 'Subscribe to a topic' and use ```iolinkdata/ice3``` as a topic filter.  
+You now will see the sensor data incoming, e.g. here a sample of teh sensor measurements:
+```json
+{
+  "port": 1,
+  "valid": 1,
+  "uint": 270859269,
+  "P_ProcessData0": {
+    "MV___Distance": 4132,
+    "Scale": -4,
+    "SSC1___Switching_Signal_1": true,
+    "SSC2___Switching_Signal_2": false,
+    "Signal_Quality_Indicator": 1
+  },
+  "raw": [
+    16,
+    36,
+    252,
+    5
+  ]
+}
+```
+
 In the AWS IoT Sitewise console you now can see the incoming data
 ![](./img/aws/sitewise.en.png)
 

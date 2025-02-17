@@ -1,25 +1,26 @@
 #!/bin/bash
 
 # This is sample code, for non-production usage. 
-# You should work with your security and legal teams to meet your organizational security, regulatory and compliance requirements before deployment
+# You should work with your security and legal teams to meet your organizational security, regulatory and compliance requirements before deployment"
 
 # Exit on any error
 set -e
 
 # Default values
-STACK_NAME="iolink-demo-shadow-addon"
+STACK_NAME="iolink-demo-last-will-addon"
 
-# Fix paramters
-TEMPLATE_FILE="./device_shadow_addon.cfn.yaml"
+# Fix parameters
+TEMPLATE_FILE="./last_will_addon.cfn.yaml"
 REGION=$(aws configure get region)
 
 # Function to print usage
 usage() {
-    echo "Usage: $0 -o <operation>"
+    echo "Usage: $0 -o <operation> -e <email>"
     echo "Operations:"
     echo "  c - Create new stack"
-    echo "  u - Update existing stack with existing parameter values"
+    echo "  u - Update existing stack"
     echo "  t - Terminate (delete) stack"
+    echo "Email is required for create and update operations"
     exit 1
 }
 
@@ -54,15 +55,22 @@ wait_for_stack_deletion() {
 }
 
 # Parse command line arguments
-while getopts "o:" opt; do
+while getopts "o:e:" opt; do
     case $opt in
         o) OPERATION=$OPTARG ;;
+        e) EMAIL=$OPTARG ;;
         *) usage ;;
     esac
 done
 
 # Check if operation is provided
 if [ -z "$OPERATION" ]; then
+    usage
+fi
+
+# Check if email is provided for create and update operations
+if [[ "$OPERATION" =~ ^[cu]$ && -z "$EMAIL" ]]; then
+    echo "Error: Email parameter is required for create and update operations"
     usage
 fi
 
@@ -73,15 +81,17 @@ case $OPERATION in
         aws cloudformation create-stack \
             --stack-name "$STACK_NAME" \
             --template-body "file://$TEMPLATE_FILE" \
+            --parameters ParameterKey=Email,ParameterValue="$EMAIL" \
             --capabilities CAPABILITY_IAM
         wait_for_stack_creation
         echo "Stack creation completed successfully!"
         ;;
     u)
-        echo "Updating existing stack with existing parameter values..."
+        echo "Updating existing stack..."
         aws cloudformation update-stack \
             --stack-name "$STACK_NAME" \
             --template-body "file://$TEMPLATE_FILE" \
+            --parameters ParameterKey=Email,ParameterValue="$EMAIL" \
             --capabilities CAPABILITY_IAM
         wait_for_stack_update
         echo "Stack update completed successfully!"

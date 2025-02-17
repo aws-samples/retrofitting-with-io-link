@@ -1,0 +1,98 @@
+# This is sample code, for non-production usage. 
+# You should work with your security and legal teams to meet your organizational security, regulatory and compliance requirements before deployment
+
+Description: >
+  IoT Rule to forward last will MQTT message to SNS topic for email notifications
+
+Parameters:
+  MQTTPrefix:
+    Description: 'MQTT prefix under which the client sends data'
+    Type: String
+    Default: iolinkdata
+  AssetName:
+    Description: 'Name of the IoT Thing that will receive shadow updates'
+    Type: String
+    Default: ice3
+  Email:
+    Description: 'Enter one email address to receive notifications. Confirm your subscription through the email you will receive'
+    Type: String
+
+Resources:
+  # Log group for error action
+  IotRuleErrorLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/iot/${AWS::StackName}/connection-notifications/error'
+      RetentionInDays: 7
+
+  # SNS Topic
+  ConnectionNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !Sub '${AssetName} Connection Notifications'
+
+  # SNS Topic Subscription
+  # SNS can multiple subscriptions.
+  # Possible protocols are Amazon Lambda or mobile apps.
+  # See section endpoint in https://docs.aws.amazon.com/sns/latest/api/API_Subscribe.html
+  EmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref ConnectionNotificationTopic
+      Protocol: email
+      Endpoint: !Ref Email
+
+  # IAM role for IoT rule
+  IotRuleRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: iot.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: PublishToSNS
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: sns:Publish
+                Resource: !Ref ConnectionNotificationTopic
+        - PolicyName: CloudWatchLogsAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !GetAtt IotRuleErrorLogs.Arn
+
+  # IoT Rule for connection messages
+  ConnectionNotificationRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: !Sub '${AssetName}_last_will'
+      TopicRulePayload:
+        RuleDisabled: false
+        Sql: !Sub >-
+          SELECT * FROM '${MQTTPrefix}/${AssetName}/connection'
+        Actions:
+          - Sns:
+              TargetArn: !Ref ConnectionNotificationTopic
+              RoleArn: !GetAtt IotRuleRole.Arn
+              MessageFormat: 'RAW'
+        ErrorAction:
+          CloudwatchLogs:
+            LogGroupName: !GetAtt IotRuleErrorLogs.Arn
+            RoleArn: !GetAtt IotRuleRole.Arn
+        Description: 'Forwards connection messages to SNS topic for email notifications'
+        AwsIotSqlVersion: '2016-03-23'
+
+Outputs:
+  SNSTopicArn:
+    Description: ARN of the SNS topic
+    Value: !Ref ConnectionNotificationTopic

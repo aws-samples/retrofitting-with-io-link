@@ -6,6 +6,9 @@ Sie sollten mit Ihren Sicherheits- und Rechtsteams zusammenarbeiten, um die Sich
 [![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/aws-samples/retrofitting-with-io-link/blob/master/README.md)
 [![de](https://img.shields.io/badge/lang-de-yellow.svg)](https://github.com/aws-samples/retrofitting-with-io-link/blob/master/README.de.md)
 
+## Überblick
+Diese Demo zeigt, wie man durch die Verbindung eines Pepperl+Fuchs IO-Link Masters mit der AWS Cloud neue digitale Fähigkeiten für bestehende Maschinen und ganze Prozesse generieren kann. Wir registrieren die Daten in AWS IoT SiteWise, einem Service, der für die Aufzeichnung und Analyse von Industriedaten entwickelt wurde.
+
 ## Hardware-Anforderungen
 * Pepperl+Fuchs IO-Link Master Modell ICE3-8IOL-G65L-V1D 
 * Pepperl+Fuchs IO-Link Abstandssensor Modell OMT550-R200-2EP-IO-V1  
@@ -39,6 +42,18 @@ sh ./deploy.sh -o c # c = create, u = update, t = delete
 cd -
 ```
 
+### Optional: Erweiterung für MQTT-Last-Will
+Diese Erweiterung sendet eine E-Mail via Amazon SNS sobald der Broker die Last-Will-Nachricht des Geräts versendet. Dies passiert, wenn die Verbindung unerwartet abreißt.
+Vergessen Sie nicht, den Email-Versand durch SNS zu bestätigen. Sie bekommen dazu eine automatische Email sobald die Subscription erzeugt wurde.
+![](./img/arch/last_will_addon.de.png)
+
+To provision the addon use these commands
+```bash
+cd last-will-addon
+sh deploy.sh -o c -e INSERT-YOUR-EMAIL # -o: c = create, u = update, t = delete
+cd -
+```
+
 ## Pepperl+Fuchs ICE Einrichtung
 
 * Laden Sie IODD des Distanzsensors von der [iodd-finder.com](https://ioddfinder.io-link.com/productvariants/search?productName=%22OMT550-R200-2EP-IO-0,3M-V1%22) Website herunter
@@ -56,6 +71,33 @@ Das erforderliche Zertifikat und der Schlüssel befinden sich im ```.demo-setup/
 ![](./img/ice3/ice3_mqtt.de.png)
 
 ## Validieren
+Hier ist die deutsche Übersetzung:
+
+Öffnen Sie den [MQTT Test Client](https://console.aws.amazon.com/iot/home?#/test) in der AWS Konsole.  
+Stellen Sie sicher, dass Sie sich in der richtigen Region befinden!  
+Wählen Sie die Option 'Thema abonnieren' und verwenden Sie ```iolinkdata/ice3``` als Themenfilter.  
+Sie sehen nun die eingehenden Sensordaten, hier zum Beispiel eine Probe der Sensormessungen:
+```json
+{
+  "port": 1,
+  "valid": 1,
+  "uint": 270859269,
+  "P_ProcessData0": {
+    "MV___Distance": 4132,
+    "Scale": -4,
+    "SSC1___Switching_Signal_1": true,
+    "SSC2___Switching_Signal_2": false,
+    "Signal_Quality_Indicator": 1
+  },
+  "raw": [
+    16,
+    36,
+    252,
+    5
+  ]
+}
+```
+
 In der AWS IoT Sitewise Console sind die eingehenden Werte nun zu beobachten.
 ![](./img/aws/sitewise.de.png)
 
