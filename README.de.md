@@ -124,7 +124,7 @@ Die Architektur lässt sich auf vielfältige Weise erweitern:
 * AWS IoT Greengrass ermöglicht es, die Daten am Edge zu prozessieren, bevor sie an die AWS Cloud oder andere Applikationen übergeben werden
 * Applikationen können die Daten abonnieren oder weitergeleitet bekommen
 * Datenvisualisierung
-* Anbindung von Sprachmodellen über Bedrock Agents
+* Anbindung von Sprachmodellen über Bedrock Agents (beachten Sie dieses Repo: https://github.com/aws-samples/aws-iot-sitewise-conversational-agent)  
 * Nutzung der Daten in weiteren Applikationen durch die SiteWise API
 * Datenexport nach Amazon S3 zur Weiternutzung z.B. durch Analytics-Applikationen
 ![](./img/arch/retro_extended.de.png)
