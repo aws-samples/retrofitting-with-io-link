@@ -24,6 +24,9 @@ If you prefer to build the stack using the console, you can follow these [instru
 Once created, check the outputs tab of the stack for links to required inputs.
 
 ### Create stack
+Below command will create the stack, download the certificate and private key and output the IoT endpoint to be used.
+> [!TIP]
+> For production scenarios, you might want to consider [creating a domain name for the endpoint](https://docs.aws.amazon.com/iot/latest/developerguide/iot-custom-endpoints-configurable-custom.html).
 ```bash
 cd demo-setup
 sh deploy.sh -o c # c = create, u = update, t = delete
@@ -31,7 +34,7 @@ cd -
 ```
 
 ### Optional: Addon for device shadow
-This addon stack takes the status messages of the devie and turns it into device shadows to persist them.
+This addon stack takes the status messages of the device and turns it into device shadows to persist them.
 
 ![](./img/arch/shadow_addon.en.png)
 
@@ -44,7 +47,7 @@ cd -
 
 ### Optional: Addon for last will
 This addon stack sends an Email via SNS in case the device's last will message is emmitted by the broker due to an ungraceful disconenction of the device.  
-Make sure to confirm your subscription through the email you will receive uposn subscription is created.
+Make sure to confirm your subscription through the email you will receive upon subscription is created.
 
 ![](./img/arch/last_will_addon.en.png)
 
@@ -76,7 +79,7 @@ The required certificate and key can be found in the ```./demo-setup/cert``` fol
 Open the [MQTT test client](https://console.aws.amazon.com/iot/home?#/test) ion the AWS console.  
 Make sure you are in the proper region!  
 Use option 'Subscribe to a topic' and use ```iolinkdata/ice3``` as a topic filter.  
-You now will see the sensor data incoming, e.g. here a sample of teh sensor measurements:
+You now will see the sensor data incoming, e.g. here a sample of the sensor measurements:
 ```json
 {
   "port": 1,
