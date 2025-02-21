@@ -24,6 +24,9 @@ Wenn Sie den Stack lieber über die Konsole erstellen möchten, können Sie dies
 Nach der Erstellung des Stacks finden Sie im Ausgabe-Tab des Stacks Links zu den erforderlichen Eingaben.
 
 ### Stack erstellen
+Der folgende Befehl erstellt den Stack, lädt das Zertifikat und den privaten Schlüssel herunter und gibt den zu verwendenden IoT-Endpunkt aus.
+> [!TIP]
+> Für Produktivszenarien sollten Sie in Erwägung ziehen, [einen eigenen Domainnamen für den Endpunkt zu erstellen](https://docs.aws.amazon.com/de_de/iot/latest/developerguide/iot-custom-endpoints-configurable-custom.html).
 ```bash
 cd demo-setup
 sh ./deploy.sh -o c # c = create, u = update, t = delete
