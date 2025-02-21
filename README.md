@@ -19,9 +19,24 @@ Both components are also part of the Pepperl+Fuchs 'IO-Link Starter Kit'.
 
 ![](./img/arch/retro_demo.en.png)
 
-Below setup instructions use AWS CLI.  
-If you prefer to build the stack using the console, you can follow these [instructions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html#create-stack) using the Option "Upload template".  
-Once created, check the outputs tab of the stack for links to required inputs.
+Setup instructions use AWS CLI.  
+If you prefer to build the stack using the console, uncollaps below section:
+
+<details>
+
+<summary>Expand for details on manual provisioning</summary>
+
+><br>
+>
+>[Click this link to get to the stack creation page in the AWS console.](https://console.aws.amazon.com/cloudformation/home?/stacks/create)
+><br>
+>
+>You can follow these [instructions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html#create-stack) using the Option "Upload template".  
+>
+>![](./img/aws/create_stack.en.png)
+>- If parameters contain default values, leave them as they are for this demo.  
+>- Once created, check the outputs tab of the stack for links to required inputs.
+</details>
 
 ### Create stack
 Below command will create the stack, download the certificate and private key and output the IoT endpoint to be used.
@@ -32,8 +47,9 @@ cd demo-setup
 sh deploy.sh -o c # c = create, u = update, t = delete
 cd -
 ```
-
 ### Optional: Addon for device shadow
+<details>
+<summary>Expand for details</summary>
 This addon stack takes the status messages of the device and turns it into device shadows to persist them.
 
 ![](./img/arch/shadow_addon.en.png)
@@ -44,8 +60,11 @@ cd device-shadow-addon
 sh deploy.sh -o c # c = create, u = update, t = delete
 cd -
 ```
+</details>
 
-### Optional: Addon for last will
+### Optional: Addon for MQTT Last Will
+<details>
+<summary>Expand for details</summary>
 This addon stack sends an Email via SNS in case the device's last will message is emmitted by the broker due to an ungraceful disconenction of the device.  
 Make sure to confirm your subscription through the email you will receive upon subscription is created.
 
@@ -57,6 +76,7 @@ cd last-will-addon
 sh deploy.sh -o c -e INSERT-YOUR-EMAIL # -o: c = create, u = update, t = delete
 cd -
 ```
+</details>
 
 ## Pepperl+Fuchs ICE Setup
 

@@ -20,8 +20,25 @@ Beide Komponenten sind auch Teil des Pepperl+Fuchs 'IO-Link Starter Kit'.
 ![](./img/arch/retro_demo.de.png)
 
 Die folgenden Anweisungen verwenden die AWS CLI.  
-Wenn Sie den Stack lieber über die Konsole erstellen möchten, können Sie dieser [Anleitung](https://docs.aws.amazon.com/de_de/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html#create-stack) unter Nutzung der Option "Vorlage hochladen" folgen.  
-Nach der Erstellung des Stacks finden Sie im Ausgabe-Tab des Stacks Links zu den erforderlichen Eingaben.
+Hier ist die deutsche Übersetzung:
+
+Wenn Sie den Stack lieber über die Konsole erstellen möchten, klappen Sie den folgenden Abschnitt auf:
+
+<details>
+
+<summary>Für Details zur manuellen Bereitstellung ausklappen</summary>
+
+><br>
+>
+>[Klicken Sie auf diesen Link, um zur Stack-Erstellungsseite in der AWS-Konsole zu gelangen.](https://console.aws.amazon.com/cloudformation/home?/stacks/create)
+><br>
+>
+>Sie können diese [Anleitung](https://docs.aws.amazon.com/de_de/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html#create-stack) mit der Option "Vorlage hochladen" befolgen.
+>
+>![](./img/aws/create_stack.de.png)
+>- Wenn Parameter Standardwerte enthalten, belassen Sie diese für diese Demo wie sie sind.
+>- Überprüfen Sie nach der Erstellung den Registerkarte "Ausgabe" des Stacks auf Links zu erforderlichen Eingaben.
+</details>
 
 ### Stack erstellen
 Der folgende Befehl erstellt den Stack, lädt das Zertifikat und den privaten Schlüssel herunter und gibt den zu verwendenden IoT-Endpunkt aus.
@@ -34,6 +51,8 @@ cd -
 ```
 
 ### Optional: Erweiterung zur Nutzung von Geräteschatten erstellen
+<details>
+<summary>Details anzeigen</summary>
 Dieser Stack enthält die Logik um die Status Nachrichten des Masters in Geräteschatten zu persistieren.
 
 ![](./img/arch/shadow_addon.de.png)
@@ -44,8 +63,11 @@ cd device-shadow-addon
 sh ./deploy.sh -o c # c = create, u = update, t = delete
 cd -
 ```
+</details>
 
 ### Optional: Erweiterung für MQTT-Last-Will
+<details>
+<summary>Details anzeigen</summary>
 Diese Erweiterung sendet eine E-Mail via Amazon SNS sobald der Broker die Last-Will-Nachricht des Geräts versendet. Dies passiert, wenn die Verbindung unerwartet abreißt.
 Vergessen Sie nicht, den Email-Versand durch SNS zu bestätigen. Sie bekommen dazu eine automatische Email sobald die Subscription erzeugt wurde.
 ![](./img/arch/last_will_addon.de.png)
@@ -56,6 +78,7 @@ cd last-will-addon
 sh deploy.sh -o c -e INSERT-YOUR-EMAIL # -o: c = create, u = update, t = delete
 cd -
 ```
+</details>
 
 ## Pepperl+Fuchs ICE Einrichtung
 
