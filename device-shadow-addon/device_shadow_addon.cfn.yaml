@@ -136,6 +136,26 @@ Resources:
         Description: 'Updates thing shadow reported state from port deviceinfo messages'
         AwsIotSqlVersion: '2016-03-23'        
 
+  # IoT Rule catching port deviceinfo messages for all ports
+  LwtToShadowRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: ice3_last_will_to_shadow
+      TopicRulePayload:
+        RuleDisabled: false
+        Sql: !Sub SELECT * as state.reported FROM '${MQTTPrefix}/${AssetName}/connection'
+        Actions:
+          - Republish:
+              RoleArn: !GetAtt IotRuleRole.Arn
+              Topic: !Sub '$$aws/things/${AssetName}/shadow/name/connection/update'
+              Qos: 0
+        ErrorAction:
+          CloudwatchLogs:
+            LogGroupName: !GetAtt IotRuleErrorLogs.Arn
+            RoleArn: !GetAtt IotRuleRole.Arn
+        Description: 'Updates thing shadow reported state from last will messages'
+        AwsIotSqlVersion: '2016-03-23'        
+
 Outputs:
   IoThingConsoleUrl:
     Description: Check tab device shadows in IoT console to inspect current shadows
