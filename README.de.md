@@ -80,6 +80,22 @@ cd -
 ```
 </details>
 
+### Optional: Erweiterung für Device Defender
+<details>
+<summary>Details anzeigen</summary>
+Diese Ergänzung aktiviert AWS IoT Device Defender-Funktionen.  
+Sie überprüft Geräte regelmäßig auf bestimmte Verstöße und kontrolliert auch die IP-Adresse des Geräts.  
+Im Falle von Warnungen wird eine E-Mail über SNS-Benachrichtigung gesendet.  
+Stellen Sie sicher, dass Sie Ihr Abonnement über die E-Mail bestätigen, die Sie nach der Erstellung des Abonnements erhalten.  
+
+Verwenden Sie diese Befehle, um das Addon bereitzustellen, der IP Bereich im Beispiel ist zufällig gewählt:
+```bash
+cd device-defender-addon
+sh deploy.sh -o c -e INSERT-YOUR-EMAIL -i \"10.0.48.0/24\,10.0.112.0/24\" # -o: c = create, u = update, t = delete
+cd -
+```
+</details>
+
 ## Pepperl+Fuchs ICE Einrichtung
 
 * Laden Sie IODD des Distanzsensors von der [iodd-finder.com](https://ioddfinder.io-link.com/productvariants/search?productName=%22OMT550-R200-2EP-IO-0,3M-V1%22) Website herunter
@@ -93,15 +109,13 @@ cd -
 ![](./img/ice3/ice3_network.de.png)
 
 * MQTT aktivieren  
-Das erforderliche Zertifikat und der Schlüssel befinden sich im ```.demo-setup/cert``` Ordner des Projekts, der im Rahmen der Ausführung des ```deploy.sh``` Skripts erstellt wurde. Der erforderliche IoT-Endpunkt wird ebenfalls vom Skript ermittelt und ausgegeben.
+Das erforderliche Zertifikat und der Schlüssel befinden sich im ```./demo-setup/cert``` Ordner des Projekts, der im Rahmen der Ausführung des ```deploy.sh``` Skripts erstellt wurde. Der erforderliche IoT-Endpunkt wird ebenfalls vom Skript ermittelt und ausgegeben.
 ![](./img/ice3/ice3_mqtt.de.png)
 
 ## Validieren
-Hier ist die deutsche Übersetzung:
-
 Öffnen Sie den [MQTT Test Client](https://console.aws.amazon.com/iot/home?#/test) in der AWS Konsole.  
 Stellen Sie sicher, dass Sie sich in der richtigen Region befinden!  
-Wählen Sie die Option 'Thema abonnieren' und verwenden Sie ```iolinkdata/ice3``` als Themenfilter.  
+Wählen Sie die Option 'Thema abonnieren' und verwenden Sie ```iolinkdata/ice3/#``` als Themenfilter.  
 Sie sehen nun die eingehenden Sensordaten, hier zum Beispiel eine Probe der Sensormessungen:
 ```json
 {

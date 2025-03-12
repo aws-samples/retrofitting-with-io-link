@@ -78,6 +78,22 @@ cd -
 ```
 </details>
 
+### Optional: Addon for security audits and checks
+<details>
+<summary>Expand for details</summary>
+This adding activates AWS IoT device defender features. 
+It audits devices regularly for certain violations and also checks the IP adress of the device.  
+In case of alerts, an email is send via SNS notification.
+Make sure to confirm your subscription through the email you will receive upon subscription is created.
+
+To provision the addon use these commands. The ip range below is randomly selected.
+```bash
+cd device-defender-addon
+sh deploy.sh -o c -e INSERT-YOUR-EMAIL -i \"10.0.48.0/24\,10.0.112.0/24\" # -o: c = create, u = update, t = delete
+cd -
+```
+</details>
+
 ## Pepperl+Fuchs ICE Setup
 
 * Download IODD for the distance sensor from the [iodd-finder.com](https://ioddfinder.io-link.com/productvariants/search?productName=%22OMT550-R200-2EP-IO-0,3M-V1%22) website
@@ -98,7 +114,7 @@ The required certificate and key can be found in the ```./demo-setup/cert``` fol
 
 Open the [MQTT test client](https://console.aws.amazon.com/iot/home?#/test) ion the AWS console.  
 Make sure you are in the proper region!  
-Use option 'Subscribe to a topic' and use ```iolinkdata/ice3``` as a topic filter.  
+Use option 'Subscribe to a topic' and use ```iolinkdata/ice3/#``` as a topic filter.  
 You now will see the sensor data incoming, e.g. here a sample of the sensor measurements:
 ```json
 {
@@ -136,7 +152,7 @@ aws iotsitewise get-asset-property-value-history \
 
 ```
 
-## Possible extensions of architecure
+## Possible extensions of architecture
 The architecture can be extended in various ways:
 * AWS IoT Greengrass enables data processing at the edge before transferring it to AWS Cloud or other applications
 * Applications can subscribe to or receive forwarded data
