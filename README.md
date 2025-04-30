@@ -98,7 +98,7 @@ The required certificate and key can be found in the ```./demo-setup/cert``` fol
 
 Open the [MQTT test client](https://console.aws.amazon.com/iot/home?#/test) ion the AWS console.  
 Make sure you are in the proper region!  
-Use option 'Subscribe to a topic' and use ```iolinkdata/ice3``` as a topic filter.  
+Use option 'Subscribe to a topic' and use ```iolinkdata/ice3/#``` as a topic filter.  
 You now will see the sensor data incoming, e.g. here a sample of the sensor measurements:
 ```json
 {
@@ -136,7 +136,7 @@ aws iotsitewise get-asset-property-value-history \
 
 ```
 
-## Possible extensions of architecure
+## Possible extensions of architecture
 The architecture can be extended in various ways:
 * AWS IoT Greengrass enables data processing at the edge before transferring it to AWS Cloud or other applications
 * Applications can subscribe to or receive forwarded data

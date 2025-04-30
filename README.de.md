@@ -93,15 +93,13 @@ cd -
 ![](./img/ice3/ice3_network.de.png)
 
 * MQTT aktivieren  
-Das erforderliche Zertifikat und der Schlüssel befinden sich im ```.demo-setup/cert``` Ordner des Projekts, der im Rahmen der Ausführung des ```deploy.sh``` Skripts erstellt wurde. Der erforderliche IoT-Endpunkt wird ebenfalls vom Skript ermittelt und ausgegeben.
+Das erforderliche Zertifikat und der Schlüssel befinden sich im ```./demo-setup/cert``` Ordner des Projekts, der im Rahmen der Ausführung des ```deploy.sh``` Skripts erstellt wurde. Der erforderliche IoT-Endpunkt wird ebenfalls vom Skript ermittelt und ausgegeben.
 ![](./img/ice3/ice3_mqtt.de.png)
 
 ## Validieren
-Hier ist die deutsche Übersetzung:
-
 Öffnen Sie den [MQTT Test Client](https://console.aws.amazon.com/iot/home?#/test) in der AWS Konsole.  
 Stellen Sie sicher, dass Sie sich in der richtigen Region befinden!  
-Wählen Sie die Option 'Thema abonnieren' und verwenden Sie ```iolinkdata/ice3``` als Themenfilter.  
+Wählen Sie die Option 'Thema abonnieren' und verwenden Sie ```iolinkdata/ice3/#``` als Themenfilter.  
 Sie sehen nun die eingehenden Sensordaten, hier zum Beispiel eine Probe der Sensormessungen:
 ```json
 {
