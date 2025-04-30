@@ -78,22 +78,6 @@ cd -
 ```
 </details>
 
-### Optional: Addon for security audits and checks
-<details>
-<summary>Expand for details</summary>
-This adding activates AWS IoT device defender features. 
-It audits devices regularly for certain violations and also checks the IP adress of the device.  
-In case of alerts, an email is send via SNS notification.
-Make sure to confirm your subscription through the email you will receive upon subscription is created.
-
-To provision the addon use these commands. The ip range below is randomly selected.
-```bash
-cd device-defender-addon
-sh deploy.sh -o c -e INSERT-YOUR-EMAIL -i \"10.0.48.0/24\,10.0.112.0/24\" # -o: c = create, u = update, t = delete
-cd -
-```
-</details>
-
 ## Pepperl+Fuchs ICE Setup
 
 * Download IODD for the distance sensor from the [iodd-finder.com](https://ioddfinder.io-link.com/productvariants/search?productName=%22OMT550-R200-2EP-IO-0,3M-V1%22) website

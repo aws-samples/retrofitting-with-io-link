@@ -104,12 +104,15 @@ Resources:
           - Effect: Allow
             Action:
               - iot:Subscribe
+            Resource:
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/${MQTTTopicPrefix}/${!iot:ClientId}/port/*
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/${MQTTTopicPrefix}/${!iot:ClientId}/dio/*
+          - Effect: Allow
+            Action:
               - iot:Receive
             Resource:
-              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/${MQTTTopicPrefix}/${!iot:ClientId}/port/+/auxin/wr
-              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/${MQTTTopicPrefix}/${!iot:ClientId}/dio/+/wr
-              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/${MQTTTopicPrefix}/${!iot:ClientId}/port/+/pdo/wr
-              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/${MQTTTopicPrefix}/${!iot:ClientId}/port/+/isdu/request/+
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/${MQTTTopicPrefix}/${!iot:ClientId}/port/*
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/${MQTTTopicPrefix}/${!iot:ClientId}/dio/*
 
   IotThingCertificateSetupLogs:
     Type: AWS::Logs::LogGroup
@@ -289,7 +292,7 @@ Resources:
           Type:
             TypeName: Transform
             Transform:
-              Expression: d/1000
+              Expression: d/100
               Variables:
                 - Name: d
                   Value:
